@@ -193,6 +193,8 @@ def showWelcomeAnimation():
 		clock.update()
 		render.clear()
 
+		render.set_blend_mode2d(render.BlendAlpha)
+
 		# for event in pygame.event.get():
 		if keyboard.WasPressed(gs.InputDevice.KeyEscape):
 			# pygame.quit()
@@ -219,6 +221,8 @@ def showWelcomeAnimation():
 					playerx, playery + player_shm_vals['val'])
 		sprite2dtex(IMAGES['message'], messagex, messagey)
 		sprite2dtex(IMAGES['base'], basex, BASEY)
+
+		render.set_blend_mode2d(render.BlendOpaque)
 
 		render.flip()
 
