@@ -1,8 +1,6 @@
 from itertools import cycle
 import random
 import sys
-import math
-import hashlib
 
 import gs
 import gs.plus.render as render
@@ -73,7 +71,7 @@ def sprite2dtex(pic, x: float, y: float, size: float = 1.0, color=gs.Color.White
 	x -= size * pivot_x
 	y -= size * pivot_y
 
-	render.texture2d(x, y, size, tex, color, flip_h, flip_v)
+	render.texture2d(x, y, size, tex, color, flip_h, not flip_v)
 
 
 def main():
@@ -83,6 +81,7 @@ def main():
 	gs.LoadPlugins(gs.get_default_plugins_path())
 	# init the screen window
 	render.init(SCREENWIDTH, SCREENHEIGHT, "pkg.core")
+	render.set_2d_origin_is_top_left(True)
 	# mount the system file driver
 	gs.MountFileDriver(gs.StdFileDriver("assets/"), "@assets/")
 	# open the audio mixer
