@@ -50,24 +50,10 @@ PIPES_LIST = (
 	'@assets/sprites/pipe-red.png',
 )
 
-texture_bank = {}
 
 # ------------------------------------------------------------------------------
-def sprite2dtex(pic, x: float, y: float, size: float = 1.0, color=gs.Color.White, pivot_x: float = 0.5,
+def sprite2dtex(tex, x: float, y: float, size: float = 1.0, color=gs.Color.White, pivot_x: float = 0.5,
 			 pivot_y: float = 0.5, flip_h: bool = False, flip_v: bool = False):
-	"""Draw a sprite"""
-	global texture_bank
-	pic_sha = str(pic)
-	# if pic is already available as a texture, use it
-	# otherwise, convert the picture into a texture
-	# and add it to the bank (using the SHA as a dict key)
-	if pic_sha in texture_bank:
-		tex = texture_bank[pic_sha]
-	else:
-		tex = render.get_renderer().NewTexture()
-		render.get_renderer().CreateTexture(tex, pic)
-		texture_bank[pic_sha] = tex
-
 	x -= size * pivot_x
 	y -= size * pivot_y
 
@@ -96,24 +82,24 @@ def main():
 
 	# numbers sprites for score display
 	IMAGES['numbers'] = (
-		gs.LoadPicture('@assets/sprites/0.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/1.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/2.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/3.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/4.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/5.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/6.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/7.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/8.png'), #.convert_alpha(),
-		gs.LoadPicture('@assets/sprites/9.png') #.convert_alpha()
+		render.get_renderer().LoadTexture('@assets/sprites/0.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/1.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/2.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/3.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/4.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/5.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/6.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/7.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/8.png'), #.convert_alpha(),
+		render.get_renderer().LoadTexture('@assets/sprites/9.png') #.convert_alpha()
 	)
 
 	# game over sprite
-	IMAGES['gameover'] = gs.LoadPicture('@assets/sprites/gameover.png') #.convert_alpha()
+	IMAGES['gameover'] = render.get_renderer().LoadTexture('@assets/sprites/gameover.png') #.convert_alpha()
 	# message sprite for welcome screen
-	IMAGES['message'] = gs.LoadPicture('@assets/sprites/message.png') #.convert_alpha()
+	IMAGES['message'] = render.get_renderer().LoadTexture('@assets/sprites/message.png') #.convert_alpha()
 	# base (ground) sprite
-	IMAGES['base'] = gs.LoadPicture('@assets/sprites/base.png') #.convert_alpha()
+	IMAGES['base'] = render.get_renderer().LoadTexture('@assets/sprites/base.png') #.convert_alpha()
 
 	# sounds
 	sound_ext = '.wav'
@@ -127,19 +113,19 @@ def main():
 	while True:
 		# select random background sprites
 		rand_bg = random.randint(0, len(BACKGROUNDS_LIST) - 1)
-		IMAGES['background'] = gs.LoadPicture(BACKGROUNDS_LIST[rand_bg]) #.convert()
+		IMAGES['background'] = render.get_renderer().LoadTexture(BACKGROUNDS_LIST[rand_bg]) #.convert()
 
 		# select random player sprites
 		rand_player = random.randint(0, len(PLAYERS_LIST) - 1)
 		IMAGES['player'] = (
-			gs.LoadPicture(PLAYERS_LIST[rand_player][0]), #.convert_alpha(),
-			gs.LoadPicture(PLAYERS_LIST[rand_player][1]), #.convert_alpha(),
-			gs.LoadPicture(PLAYERS_LIST[rand_player][2]) #.convert_alpha(),
+			render.get_renderer().LoadTexture(PLAYERS_LIST[rand_player][0]), #.convert_alpha(),
+			render.get_renderer().LoadTexture(PLAYERS_LIST[rand_player][1]), #.convert_alpha(),
+			render.get_renderer().LoadTexture(PLAYERS_LIST[rand_player][2]) #.convert_alpha(),
 		)
 
 		# select random pipe sprites
 		pipe_index = random.randint(0, len(PIPES_LIST) - 1)
-		pipe_image = gs.LoadPicture(PIPES_LIST[pipe_index])
+		pipe_image = render.get_renderer().LoadTexture(PIPES_LIST[pipe_index])
 		IMAGES['pipe'] = (
 			pipe_image, # gs.Picture.BlitTransform(pipe_image, pipe_image.GetRect(), gs.RotationMatrixXAxis(math.pi), gs.Filter.Bilinear),
 			pipe_image
@@ -468,21 +454,28 @@ def pixelCollision(rect1, rect2, hitmask1, hitmask2):
 	x1, y1 = rect.sx - rect1.sx, rect.sy - rect1.sy
 	x2, y2 = rect.sx - rect2.sx, rect.sy - rect2.sy
 
+	def get_hitmask_value(mask, x, y):
+		if x < 0 or y < 0 or x >= len(mask) or y >= len(mask[x]):
+			return False
+		return mask[x][y]
+
 	for x in range(rect.GetWidth()):
 		for y in range(rect.GetHeight()):
-#			if hitmask1[x1+x][y1+y] and hitmask2[x2+x][y2+y]:
-#				return True
-			pass
+			if get_hitmask_value(hitmask1, x1+x, y1+y) and get_hitmask_value(hitmask2, x2+x, y2+y):
+				return True
 	return False
 
 
-def getHitmask(image):
+def getHitmask(tex):
 	"""returns a hitmask using an image's alpha."""
+	pic = gs.Picture()
+	render.get_renderer().CaptureTexture(tex, pic)
+
 	mask = []
-	for x in range(image.GetWidth()):
+	for x in range(pic.GetWidth()):
 		mask.append([])
-		for y in range(image.GetHeight()):
-			mask[x].append(image.GetPixelRGBA(x, y).w != 0)
+		for y in range(pic.GetHeight()):
+			mask[x].append(pic.GetPixelRGBA(x, y).w != 0)
 	return mask
 
 if __name__ == '__main__':
