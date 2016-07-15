@@ -76,7 +76,7 @@ def sprite2dtex(pic, x: float, y: float, size: float = 1.0, color=gs.Color.White
 	u = 1 if flip_h else 0
 	v = 1 if flip_v else 0
 
-	render.__graphic_engine_2d.Quad(x, y, 0, x, y + h, 0, x + x, y + h, 0, x + w, y, 0, u, v, 1 - u, 1 - v, tex,
+	render.__graphic_engine_2d.Quad(x, y, 0, x, y + h, 0, x + w, y + h, 0, x + w, y, 0, u, v, 1 - u, 1 - v, tex,
 							 color, color, color, color)
 
 
@@ -201,7 +201,7 @@ def showWelcomeAnimation():
 			sys.exit()
 		if keyboard.WasPressed(gs.InputDevice.KeySpace):
 			# make first flap sound and return values for mainGame
-			SOUNDS['wing'].play()
+			# SOUNDS['wing'].play()
 			return {
 				'playery': playery + player_shm_vals['val'],
 				'basex': basex,
@@ -293,7 +293,7 @@ def mainGame(movement_info):
 			pipe_mid_pos = pipe['x'] + IMAGES['pipe'][0].GetWidth() / 2
 			if pipe_mid_pos <= player_mid_pos < pipe_mid_pos + 4:
 				score += 1
-				SOUNDS['point'].play()
+				# SOUNDS['point'].play()
 
 		# player_index basex change
 		if (loop_iter + 1) % 3 == 0:
@@ -357,7 +357,8 @@ def showGameOverScreen(crash_info):
 	# play hit and die sounds
 	SOUNDS['hit'].play()
 	if not crash_info['groundCrash']:
-		SOUNDS['die'].play()
+		# SOUNDS['die'].play()
+		pass
 
 	while True:
 		# for event in pygame.event.get():
@@ -442,15 +443,15 @@ def checkCrash(player, upper_pipes, lower_pipes):
 		return [True, True]
 	else:
 
-		playerRect = pygame.Rect(player['x'], player['y'],
-					  player['w'], player['h'])
+		playerRect = gs.iRect(int(player['x']), int(player['y']),
+					  int(player['w']), int(player['h']))
 		pipeW = IMAGES['pipe'][0].GetWidth()
 		pipeH = IMAGES['pipe'][0].GetHeight()
 
 		for u_pipe, l_pipe in zip(upper_pipes, lower_pipes):
 			# upper and lower pipe rects
-			uPipeRect = pygame.Rect(u_pipe['x'], u_pipe['y'], pipeW, pipeH)
-			lPipeRect = pygame.Rect(l_pipe['x'], l_pipe['y'], pipeW, pipeH)
+			uPipeRect = gs.iRect(int(u_pipe['x']), int(u_pipe['y']), int(pipeW), int(pipeH))
+			lPipeRect = gs.iRect(int(l_pipe['x']), int(l_pipe['y']), int(pipeW), int(pipeH))
 
 			# player and upper/lower pipe hitmasks
 			pHitMask = HITMASKS['player'][pi]
@@ -469,16 +470,16 @@ def checkCrash(player, upper_pipes, lower_pipes):
 
 def pixelCollision(rect1, rect2, hitmask1, hitmask2):
 	"""Checks if two objects collide and not just their rects"""
-	rect = rect1.clip(rect2)
+	rect = rect1.Intersection(rect2)
 
-	if rect.width == 0 or rect.height == 0:
+	if rect.GetWidth() == 0 or rect.GetHeight() == 0:
 		return False
 
 	x1, y1 = rect.x - rect1.x, rect.y - rect1.y
 	x2, y2 = rect.x - rect2.x, rect.y - rect2.y
 
-	for x in xrange(rect.width):
-		for y in xrange(rect.height):
+	for x in xrange(rect.GetWidth()):
+		for y in xrange(rect.GetHeight()):
 			if hitmask1[x1+x][y1+y] and hitmask2[x2+x][y2+y]:
 				return True
 	return False
