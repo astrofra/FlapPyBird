@@ -70,14 +70,10 @@ def sprite2dtex(pic, x: float, y: float, size: float = 1.0, color=gs.Color.White
 		render.get_renderer().CreateTexture(tex, pic)
 		texture_bank[pic_sha] = tex
 
-	w, h = tex.GetWidth() * size, tex.GetHeight() * size
 	x -= size * pivot_x
 	y -= size * pivot_y
-	u = 1 if flip_h else 0
-	v = 1 if flip_v else 0
 
-	render.__graphic_engine_2d.Quad(x, y, 0, x, y + h, 0, x + x, y + h, 0, x + w, y, 0, u, v, 1 - u, 1 - v, tex,
-							 color, color, color, color)
+	render.texture2d(x, y, size, tex, color, flip_h, flip_v)
 
 
 def main():
@@ -201,7 +197,7 @@ def showWelcomeAnimation():
 			sys.exit()
 		if keyboard.WasPressed(gs.InputDevice.KeySpace):
 			# make first flap sound and return values for mainGame
-			SOUNDS['wing'].play()
+			al.Start(SOUNDS['wing'])
 			return {
 				'playery': playery + player_shm_vals['val'],
 				'basex': basex,
@@ -263,15 +259,13 @@ def mainGame(movement_info):
 
 
 	while True:
-		# for event in pygame.event.get():
-		# 	if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-		# 		pygame.quit()
-		# 		sys.exit()
-		# 	if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
-		# 		if playery > -2 * IMAGES['player'][0].GetHeight():
-		# 			player_vel_y = player_flap_acc
-		# 			player_flapped = True
-		# 			SOUNDS['wing'].play()
+		if gs.GetKeyboard().WasPressed(gs.InputDevice.KeyEscape):
+			sys.exit()
+		if gs.GetKeyboard().WasPressed(gs.InputDevice.KeySpace) or gs.GetKeyboard().WasPressed(gs.InputDevice.KeyUp):
+			if playery > -2 * IMAGES['player'][0].GetHeight():
+				player_vel_y = player_flap_acc
+				player_flapped = True
+				al.Start(SOUNDS['wing'])
 
 		# check for crash here
 		crash_test = checkCrash({'x': playerx, 'y': playery, 'index': player_index},
@@ -293,7 +287,7 @@ def mainGame(movement_info):
 			pipe_mid_pos = pipe['x'] + IMAGES['pipe'][0].GetWidth() / 2
 			if pipe_mid_pos <= player_mid_pos < pipe_mid_pos + 4:
 				score += 1
-				SOUNDS['point'].play()
+				al.Start(SOUNDS['point'])
 
 		# player_index basex change
 		if (loop_iter + 1) % 3 == 0:
@@ -326,19 +320,19 @@ def mainGame(movement_info):
 			lower_pipes.pop(0)
 
 		# draw sprites
-		sprite2dtex(IMAGES['background'], (0,0))
+		sprite2dtex(IMAGES['background'], 0, 0)
 
 		for u_pipe, l_pipe in zip(upper_pipes, lower_pipes):
-			sprite2dtex(IMAGES['pipe'][0], (u_pipe['x'], u_pipe['y']))
-			sprite2dtex(IMAGES['pipe'][1], (l_pipe['x'], l_pipe['y']))
+			sprite2dtex(IMAGES['pipe'][0], u_pipe['x'], u_pipe['y'])
+			sprite2dtex(IMAGES['pipe'][1], l_pipe['x'], l_pipe['y'])
 
-		sprite2dtex(IMAGES['base'], (basex, BASEY))
+		sprite2dtex(IMAGES['base'], basex, BASEY)
 		# print score so player overlaps the score
 		showScore(score)
-		sprite2dtex(IMAGES['player'][player_index], (playerx, playery))
+		sprite2dtex(IMAGES['player'][player_index], playerx, playery)
 
-		pygame.display.update()
-		FPSCLOCK.tick(FPS)
+		render.flip()
+		clock.update()
 
 
 def showGameOverScreen(crash_info):
@@ -355,18 +349,16 @@ def showGameOverScreen(crash_info):
 	upper_pipes, lower_pipes = crash_info['upper_pipes'], crash_info['lower_pipes']
 
 	# play hit and die sounds
-	SOUNDS['hit'].play()
+	al.Start(SOUNDS['hit'])
 	if not crash_info['groundCrash']:
-		SOUNDS['die'].play()
+		al.Start(SOUNDS['die'])
 
 	while True:
-		# for event in pygame.event.get():
-		# 	if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-		# 		pygame.quit()
-		# 		sys.exit()
-		# 	if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
-		# 		if playery + player_height >= BASEY - 1:
-		# 			return
+		if gs.GetKeyboard().WasPressed(gs.InputDevice.KeyEscape):
+			sys.exit()
+		if gs.GetKeyboard().WasPressed(gs.InputDevice.KeySpace) or gs.GetKeyboard().WasPressed(gs.InputDevice.KeyUp):
+			if playery + player_height >= BASEY - 1:
+				return
 
 		# player y shift
 		if playery + player_height < BASEY - 1:
@@ -377,18 +369,18 @@ def showGameOverScreen(crash_info):
 			player_vel_y += player_acc_y
 
 		# draw sprites
-		sprite2dtex(IMAGES['background'], (0,0))
+		sprite2dtex(IMAGES['background'], 0, 0)
 
 		for u_pipe, l_pipe in zip(upper_pipes, lower_pipes):
-			sprite2dtex(IMAGES['pipe'][0], (u_pipe['x'], u_pipe['y']))
-			sprite2dtex(IMAGES['pipe'][1], (l_pipe['x'], l_pipe['y']))
+			sprite2dtex(IMAGES['pipe'][0], u_pipe['x'], u_pipe['y'])
+			sprite2dtex(IMAGES['pipe'][1], l_pipe['x'], l_pipe['y'])
 
-		sprite2dtex(IMAGES['base'], (basex, BASEY))
+		sprite2dtex(IMAGES['base'], basex, BASEY)
 		showScore(score)
-		sprite2dtex(IMAGES['player'][1], (playerx,playery))
+		sprite2dtex(IMAGES['player'][1], playerx,playery)
 
-		FPSCLOCK.tick(FPS)
-		pygame.display.update()
+		render.flip()
+		clock.update()
 
 
 def playerShm(playerShm):
@@ -427,7 +419,7 @@ def showScore(score):
 	Xoffset = (SCREENWIDTH - totalWidth) / 2
 
 	for digit in scoreDigits:
-		sprite2dtex(IMAGES['numbers'][digit], (Xoffset, SCREENHEIGHT * 0.1))
+		sprite2dtex(IMAGES['numbers'][digit], Xoffset, SCREENHEIGHT * 0.1)
 		Xoffset += IMAGES['numbers'][digit].GetWidth()
 
 
@@ -442,15 +434,15 @@ def checkCrash(player, upper_pipes, lower_pipes):
 		return [True, True]
 	else:
 
-		playerRect = pygame.Rect(player['x'], player['y'],
+		playerRect = gs.iRect.FromWidthHeight(player['x'], player['y'],
 					  player['w'], player['h'])
 		pipeW = IMAGES['pipe'][0].GetWidth()
 		pipeH = IMAGES['pipe'][0].GetHeight()
 
 		for u_pipe, l_pipe in zip(upper_pipes, lower_pipes):
 			# upper and lower pipe rects
-			uPipeRect = pygame.Rect(u_pipe['x'], u_pipe['y'], pipeW, pipeH)
-			lPipeRect = pygame.Rect(l_pipe['x'], l_pipe['y'], pipeW, pipeH)
+			uPipeRect = gs.iRect.FromWidthHeight(int(u_pipe['x']), u_pipe['y'], pipeW, pipeH)
+			lPipeRect = gs.iRect.FromWidthHeight(int(l_pipe['x']), l_pipe['y'], pipeW, pipeH)
 
 			# player and upper/lower pipe hitmasks
 			pHitMask = HITMASKS['player'][pi]
@@ -469,18 +461,19 @@ def checkCrash(player, upper_pipes, lower_pipes):
 
 def pixelCollision(rect1, rect2, hitmask1, hitmask2):
 	"""Checks if two objects collide and not just their rects"""
-	rect = rect1.clip(rect2)
+	rect = rect1.Intersection(rect2)
 
-	if rect.width == 0 or rect.height == 0:
+	if rect.GetWidth() == 0 or rect.GetHeight() == 0:
 		return False
 
-	x1, y1 = rect.x - rect1.x, rect.y - rect1.y
-	x2, y2 = rect.x - rect2.x, rect.y - rect2.y
+	x1, y1 = rect.sx - rect1.sx, rect.sy - rect1.sy
+	x2, y2 = rect.sx - rect2.sx, rect.sy - rect2.sy
 
-	for x in xrange(rect.width):
-		for y in xrange(rect.height):
-			if hitmask1[x1+x][y1+y] and hitmask2[x2+x][y2+y]:
-				return True
+	for x in range(rect.GetWidth()):
+		for y in range(rect.GetHeight()):
+#			if hitmask1[x1+x][y1+y] and hitmask2[x2+x][y2+y]:
+#				return True
+			pass
 	return False
 
 
@@ -490,8 +483,7 @@ def getHitmask(image):
 	for x in range(image.GetWidth()):
 		mask.append([])
 		for y in range(image.GetHeight()):
-			pass
-			# mask[x].append(bool(image.get_at((x, y))[3]))
+			mask[x].append(image.GetPixelRGBA(x, y).w != 0)
 	return mask
 
 if __name__ == '__main__':
