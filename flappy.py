@@ -9,33 +9,18 @@ import gs.plus.clock as clock
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 # amount by which base can maximum shift to left
-PIPEGAPSIZE = 100 # gap between upper and lower part of pipe
+PIPEGAPSIZE = 150 # gap between upper and lower part of pipe
 BASEY = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 
 # list of all possible players (tuple of 3 positions of flap)
-PLAYERS_LIST = (
-	# red bird
-	(
-		'@assets/sprites/redbird-upflap.png',
-		'@assets/sprites/redbird-midflap.png',
-		'@assets/sprites/redbird-downflap.png',
-	),
-	# blue bird
-	(
-		# amount by which base can maximum shift to left
-		'@assets/sprites/bluebird-upflap.png',
-		'@assets/sprites/bluebird-midflap.png',
-		'@assets/sprites/bluebird-downflap.png',
-	),
-	# yellow bird
-	(
-		'@assets/sprites/yellowbird-upflap.png',
-		'@assets/sprites/yellowbird-midflap.png',
-		'@assets/sprites/yellowbird-downflap.png',
-	),
-)
+PLAYERS_LIST = []
+for bird_col in ['red', 'blue', 'yellow']:
+	PLAYERS_LIST.append([
+		'@assets/sprites/{0}bird-upflap.png'.format(bird_col),
+		'@assets/sprites/{0}bird-midflap.png'.format(bird_col),
+		'@assets/sprites/{0}bird-downflap.png'.format(bird_col)])
 
 # list of backgrounds
 BACKGROUNDS_LIST = (
@@ -79,12 +64,12 @@ def main():
 
 	# numbers sprites for score display
 	IMAGES['numbers'] = []
-	for i in range(9):
+	for i in range(10):
 		IMAGES['numbers'].append(render.get_renderer().LoadTexture('@assets/sprites/{0}.png'.format(i)))
 
 	# game over, message and ground sprites
 	for key in ['gameover', 'message', 'base']:
-		IMAGES[key] = render.get_renderer().LoadTexture('@assets/sprites/' + key + '.png')
+		IMAGES[key] = render.get_renderer().LoadTexture('@assets/sprites/{0}.png'.format(key))
 
 	# sounds
 	for key in ['die', 'hit', 'point', 'swoosh', 'wing']:
@@ -375,7 +360,7 @@ def show_score(score):
 	total_width = 0 # total width of all numbers to be printed
 
 	for digit in score_digits:
-		total_width += IMAGES['numbers'][digit].GetWidth()
+ 		total_width += IMAGES['numbers'][digit].GetWidth()
 
 	x_offset = (SCREENWIDTH - total_width) / 2
 
