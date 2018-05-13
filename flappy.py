@@ -2,9 +2,7 @@ from itertools import cycle
 import random
 import sys
 
-import gs
-import gs.plus.render as render
-import gs.plus.clock as clock
+import harfang as hg
 
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
@@ -38,61 +36,62 @@ PIPES_LIST = (
 
 
 # ------------------------------------------------------------------------------
-def sprite2dtex(tex, x: float, y: float, size: float = 1.0, color=gs.Color.White, pivot_x: float = 0.5,
+def sprite2dtex(tex, x: float, y: float, size: float = 1.0, color=hg.Color.White, pivot_x: float = 0.5,
 			 pivot_y: float = 0.5, flip_h: bool = False, flip_v: bool = False):
+	global plus
 	x -= size * pivot_x
 	y -= size * pivot_y
 
-	render.texture2d(x, y, size, tex, color, flip_h, not flip_v)
+	plus.Texture2D(x, y, size, tex, color, flip_h, not flip_v)
 
 
 def main():
-	global al, keyboard
+	global audio_mixer, plus
 
 	# load plugins
-	gs.LoadPlugins(gs.get_default_plugins_path())
+	hg.LoadPlugins()
+	# get plus instance
+	plus = hg.GetPlus()
 	# init the screen window
-	render.init(SCREENWIDTH, SCREENHEIGHT, "pkg.core")
-	render.set_2d_origin_is_top_left(True)
+	plus.RenderInit(SCREENWIDTH, SCREENHEIGHT)
+	# plus.Set2DOriginIsTopLeft(True)
 	# mount the system file driver
-	gs.MountFileDriver(gs.StdFileDriver("assets/"), "@assets/")
+	hg.MountFileDriver(hg.StdFileDriver("assets/"), "@assets/")
 	# open the audio mixer
-	al = gs.ALMixer()
-	al.Open()
-	# open keyboard device
-	keyboard = gs.GetInputSystem().GetDevice("keyboard")
+	audio_mixer = hg.CreateMixer()
+	audio_mixer.Open()
 
 	# numbers sprites for score display
 	IMAGES['numbers'] = []
 	for i in range(10):
-		IMAGES['numbers'].append(render.get_renderer().LoadTexture('@assets/sprites/{0}.png'.format(i)))
+		IMAGES['numbers'].append(plus.GetRenderer().LoadTexture('@assets/sprites/{0}.png'.format(i)))
 
 	# game over, message and ground sprites
 	for key in ['gameover', 'message', 'base']:
-		IMAGES[key] = render.get_renderer().LoadTexture('@assets/sprites/{0}.png'.format(key))
+		IMAGES[key] = plus.GetRenderer().LoadTexture('@assets/sprites/{0}.png'.format(key))
 
 	# sounds
 	for key in ['die', 'hit', 'point', 'swoosh', 'wing']:
-		SOUNDS[key] = al.LoadSound('@assets/audio/' + key + '.wav')
+		SOUNDS[key] = audio_mixer.LoadSound('@assets/audio/' + key + '.wav')
 
 	while True:
 		# select random background sprites
 		rand_bg = random.randint(0, len(BACKGROUNDS_LIST) - 1)
-		IMAGES['background'] = render.get_renderer().LoadTexture(BACKGROUNDS_LIST[rand_bg]) 
+		IMAGES['background'] = plus.GetRenderer().LoadTexture(BACKGROUNDS_LIST[rand_bg]) 
 
 		# select random player sprites
 		rand_player = random.randint(0, len(PLAYERS_LIST) - 1)
 		IMAGES['player'] = (
-			render.get_renderer().LoadTexture(PLAYERS_LIST[rand_player][0]),
-			render.get_renderer().LoadTexture(PLAYERS_LIST[rand_player][1]),
-			render.get_renderer().LoadTexture(PLAYERS_LIST[rand_player][2])
+			plus.GetRenderer().LoadTexture(PLAYERS_LIST[rand_player][0]),
+			plus.GetRenderer().LoadTexture(PLAYERS_LIST[rand_player][1]),
+			plus.GetRenderer().LoadTexture(PLAYERS_LIST[rand_player][2])
 		)
 
 		# select random pipe sprites
 		pipe_index = random.randint(0, 1)
 		IMAGES['pipe'] = (
-			render.get_renderer().LoadTexture(PIPES_LIST[pipe_index + 2]),
-			render.get_renderer().LoadTexture(PIPES_LIST[pipe_index])
+			plus.GetRenderer().LoadTexture(PIPES_LIST[pipe_index + 2]),
+			plus.GetRenderer().LoadTexture(PIPES_LIST[pipe_index])
 		)
 
 		# hismask for pipes
@@ -115,6 +114,8 @@ def main():
 
 def show_welcome_animation():
 	"""Shows welcome screen animation of flappy bird"""
+	global plus
+
 	# index of player to blit on screen
 	player_index = 0
 	player_index_gen = cycle([0, 1, 2, 1])
@@ -135,17 +136,17 @@ def show_welcome_animation():
 	player_frame = {'val': 0, 'dir': 1}
 
 	while True:
-		render.clear()
+		plus.Clear()
 
-		render.set_blend_mode2d(render.BlendAlpha)
+		plus.SetBlend2D(hg.BlendAlpha)
 
 		# for event in pygame.event.get():
-		if keyboard.WasPressed(gs.InputDevice.KeyEscape):
+		if plus.KeyPress(hg.KeyEscape):
 			# pygame.quit()
 			sys.exit()
-		if keyboard.WasPressed(gs.InputDevice.KeySpace):
+		if plus.KeyPress(hg.KeySpace):
 			# make first flap sound and return values for main_game_loop
-			al.Start(SOUNDS['wing'])
+			audio_mixer.Start(SOUNDS['wing'])
 			return {
 				'playery': playery + player_frame['val'],
 				'basex': basex,
@@ -166,13 +167,16 @@ def show_welcome_animation():
 		sprite2dtex(IMAGES['message'], messagex, messagey)
 		sprite2dtex(IMAGES['base'], basex, BASEY)
 
-		render.set_blend_mode2d(render.BlendOpaque)
+		plus.SetBlend2D(hg.BlendOpaque)
 
-		render.flip()
-		clock.update()
+		plus.Flip()
+		plus.EndFrame()
+		plus.UpdateClock()
 
 
 def main_game_loop(movement_info):
+	global plus
+
 	score = player_index = loop_iter = 0
 	player_index_gen = movement_info['player_index_gen']
 	playerx, playery = int(SCREENWIDTH * 0.2), movement_info['playery']
@@ -208,13 +212,13 @@ def main_game_loop(movement_info):
 
 
 	while True:
-		if gs.GetKeyboard().WasPressed(gs.InputDevice.KeyEscape):
+		if plus.KeyPress(hg.KeyEscape):
 			sys.exit()
-		if gs.GetKeyboard().WasPressed(gs.InputDevice.KeySpace) or gs.GetKeyboard().WasPressed(gs.InputDevice.KeyUp):
+		if plus.KeyPress(hg.KeySpace) or plus.KeyPress(hg.KeyUp):
 			if playery > -2 * IMAGES['player'][0].GetHeight():
 				player_vel_y = player_flap_acc
 				player_flapped = True
-				al.Start(SOUNDS['wing'])
+				audio_mixer.Start(SOUNDS['wing'])
 
 		# check for crash here
 		crash_test = check_collision({'x': playerx, 'y': playery, 'index': player_index},
@@ -236,7 +240,7 @@ def main_game_loop(movement_info):
 			pipe_mid_pos = pipe['x'] + IMAGES['pipe'][0].GetWidth() / 2
 			if pipe_mid_pos <= player_mid_pos < pipe_mid_pos + 4:
 				score += 1
-				al.Start(SOUNDS['point'])
+				audio_mixer.Start(SOUNDS['point'])
 
 		# player_index basex change
 		if (loop_iter + 1) % 3 == 0:
@@ -280,12 +284,15 @@ def main_game_loop(movement_info):
 		show_score(score)
 		sprite2dtex(IMAGES['player'][player_index], playerx, playery)
 
-		render.flip()
-		clock.update()
+		plus.Flip()
+		plus.EndFrame()
+		plus.UpdateClock()
 
 
 def show_game_over_screen(crash_info):
 	"""crashes the player down ans shows game over image"""
+	global plus
+
 	score = crash_info['score']
 	playerx = SCREENWIDTH * 0.2
 	playery = crash_info['y']
@@ -298,14 +305,14 @@ def show_game_over_screen(crash_info):
 	upper_pipes, lower_pipes = crash_info['upper_pipes'], crash_info['lower_pipes']
 
 	# play hit and die sounds
-	al.Start(SOUNDS['hit'])
+	audio_mixer.Start(SOUNDS['hit'])
 	if not crash_info['groundCrash']:
-		al.Start(SOUNDS['die'])
+		audio_mixer.Start(SOUNDS['die'])
 
 	while True:
-		if gs.GetKeyboard().WasPressed(gs.InputDevice.KeyEscape):
+		if plus.KeyPress(hg.KeyEscape):
 			sys.exit()
-		if gs.GetKeyboard().WasPressed(gs.InputDevice.KeySpace) or gs.GetKeyboard().WasPressed(gs.InputDevice.KeyUp):
+		if plus.KeyPress(hg.KeySpace) or plus.KeyPress(hg.KeyUp):
 			if playery + player_height >= BASEY - 1:
 				return
 
@@ -328,8 +335,9 @@ def show_game_over_screen(crash_info):
 		show_score(score)
 		sprite2dtex(IMAGES['player'][1], playerx,playery)
 
-		render.flip()
-		clock.update()
+		plus.Flip()
+		plus.EndFrame()
+		plus.UpdateClock()
 
 
 def player_oscillate(playerShm):
@@ -380,15 +388,15 @@ def check_collision(player, upper_pipes, lower_pipes):
 		return [True, True]
 	else:   
 
-		player_rect = gs.iRect.FromWidthHeight(player['x'], player['y'],
+		player_rect = hg.Rect.FromWidthHeight(player['x'], player['y'],
 					  player['w'], player['h'])
 		pipeW = IMAGES['pipe'][0].GetWidth()
 		pipeH = IMAGES['pipe'][0].GetHeight()
 
 		for u_pipe, l_pipe in zip(upper_pipes, lower_pipes):
 			# upper and lower pipe rects
-			uPipeRect = gs.iRect.FromWidthHeight(int(u_pipe['x']), u_pipe['y'], pipeW, pipeH)
-			lPipeRect = gs.iRect.FromWidthHeight(int(l_pipe['x']), l_pipe['y'], pipeW, pipeH)
+			uPipeRect = hg.Rect.FromWidthHeight(int(u_pipe['x']), u_pipe['y'], pipeW, pipeH)
+			lPipeRect = hg.Rect.FromWidthHeight(int(l_pipe['x']), l_pipe['y'], pipeW, pipeH)
 
 			# player and upper/lower pipe hitmasks
 			pHitMask = HITMASKS['player'][pi]
@@ -416,12 +424,13 @@ def check_pixel_collision(rect1, rect2, hitmask1, hitmask2):
 	x2, y2 = rect.sx - rect2.sx, rect.sy - rect2.sy
 
 	def get_hitmask_value(mask, x, y):
+		x,y = int(x), int(y)
 		if x < 0 or y < 0 or x >= len(mask) or y >= len(mask[x]):
 			return False
 		return mask[x][y]
 
-	for x in range(0, rect.GetWidth(), 2):
-		for y in range(0, rect.GetHeight(), 2):
+	for x in range(0, int(rect.GetWidth()), 2):
+		for y in range(0, int(rect.GetHeight()), 2):
 			if get_hitmask_value(hitmask1, x1+x, y1+y) and get_hitmask_value(hitmask2, x2+x, y2+y):
 				return True
 	return False
@@ -429,8 +438,10 @@ def check_pixel_collision(rect1, rect2, hitmask1, hitmask2):
 
 def get_bitmap_hitmask(tex):
 	"""returns a hitmask using an image's alpha."""
-	pic = gs.Picture()
-	render.get_renderer().CaptureTexture(tex, pic)
+	global plus
+
+	pic = hg.Picture()
+	plus.GetRenderer().CaptureTexture(tex, pic)
 
 	mask = []
 	for x in range(pic.GetWidth()):
