@@ -54,7 +54,8 @@ def main():
 	plus = hg.GetPlus()
 	# init the screen window
 	plus.RenderInit(SCREENWIDTH, SCREENHEIGHT)
-	# plus.Set2DOriginIsTopLeft(True)
+	plus.Set2DOriginIsTopLeft(True)
+	plus.SetCulling2D(hg.CullNever)
 	# mount the system file driver
 	hg.MountFileDriver(hg.StdFileDriver("assets/"), "@assets/")
 	# open the audio mixer
